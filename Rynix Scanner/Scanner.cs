@@ -9,7 +9,7 @@ public enum Token_Class
     Plus, Minus, Star, Slash, Percent, Assign, EqualEqual, Greater, GreaterEqual, Less, LessEqual, LeftParen, RightParen,
     LeftBrace, RightBrace, LeftBracket, RightBracket, LeftAngle,
     RightAngle, Colon, Comma, Dot, DoubleQuote, SingleQuote, DoubleSlash, SlashStar, StarSlash, Identifier, Constant,Invalid, newLine,
-    Int, Float, String, Bool, Char, Array , Void
+    Int, Float, String, Bool, Char, Array , Void , DotDot,NotEqual
 }
 
 
@@ -91,6 +91,9 @@ namespace Rynix_Scanner
             Operators.Add("/*", Token_Class.SlashStar);
             Operators.Add("*/", Token_Class.StarSlash);
             Operators.Add("\n", Token_Class.newLine);
+            Operators.Add("..", Token_Class.DotDot);
+            Operators.Add("!=", Token_Class.NotEqual);
+
 
         }
 
@@ -99,7 +102,7 @@ namespace Rynix_Scanner
             string reserved_words =
             @"\b(var|val|fun|class|if|else|while|for|in|return|true|false|null|new|print|input|break|continue)\b";
 
-            string operators = @"==|>=|<=|//|/\*|\*/|\+|\-|\*|/|%|=|>|<|\(|\)|\{|\}|\[|\]|:|,|\.|""|'|\n";
+            string operators = @"==|>=|<=|//|/\*|\*/|\+|\-|\*|/|%|=|>|<|\(|\)|\{|\}|\[|\]|:|,|\.|""|'|\n|\.\.|!=";
 
             string identifiers = @"\b[a-zA-Z_][a-zA-Z0-9_]*\b";
 
@@ -107,24 +110,19 @@ namespace Rynix_Scanner
 
             string valid_tokens = reserved_words+ "|" + operators + "|" + identifiers + "|" + constants;
 
-            string invalid_digits = @"(\d|\.)*(\.\.)(\d|\.)*";
             string invalid_identefier = @$"\b[0-9]+[a-zA-Z_][a-zA-Z0-9_]*\b";
-            string invalid_character = @"[^a-zA-Z0-9_=/\*\+\-\%=><\(\)\{\}\[\]:,\.""'\n\s]";
-            string invalid_tokens = invalid_digits + "|" + invalid_identefier + "|" + invalid_character;//not valid
+            string invalid_character = @"[^a-zA-Z0-9_=/\*\+\-\%=><\(\)\{\}\[\]:,\.""'\n\s!]";
+            string invalid_tokens =  invalid_identefier + "|" + invalid_character;//not valid
      
             MatchCollection Code_matches = Regex.Matches(code, valid_tokens);
             MatchCollection invalid_Code_matches = Regex.Matches(code, invalid_tokens);
-            
-            foreach (Match match in invalid_Code_matches)
-            {
 
-                Token t = new Token();
-                t.lexeme = match.Value;
-                t.token_type = Token_Class.Invalid;
-                Tokens.Add(t);
-            }
+            MatchCollection all_matches = Regex.Matches(code, valid_tokens+"|"+invalid_tokens);
 
-            foreach (Match match in Code_matches) 
+
+
+
+            foreach (Match match in all_matches) 
             {
                 Token t = new Token();
                 t.lexeme = match.Value;
@@ -147,6 +145,11 @@ namespace Rynix_Scanner
                 else if (Regex.IsMatch(match.ToString(), constants))
                 {
                     t.token_type = Token_Class.Constant;
+                    Tokens.Add(t);
+                }
+                else
+                {
+                    t.token_type = Token_Class.Invalid;
                     Tokens.Add(t);
                 }
 
