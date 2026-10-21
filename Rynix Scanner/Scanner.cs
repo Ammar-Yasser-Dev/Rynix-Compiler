@@ -112,8 +112,10 @@ namespace Rynix_Scanner
 
 
             string string_content = @"""[^""\n]*""";
+            string char_content = @"'[^'\n]*'";
+
             string multi_comment = @"/\*([\s\S]*?)\*/";// multiline comment
-            string valid_tokens = multi_comment+"|"+comment_content+"|"+string_content + "|" + reserved_words + "|" + operators + "|" + identifiers + "|" + constants;
+            string valid_tokens = char_content+"|"+multi_comment+"|"+comment_content+"|"+string_content + "|" + reserved_words + "|" + operators + "|" + identifiers + "|" + constants;
 
             string invalid_identefier = @$"\b[0-9]+[a-zA-Z_][a-zA-Z0-9_]*\b";
             string invalid_character = @"[^a-zA-Z0-9_=/\*\+\-\%=><\(\)\{\}\[\]:,\.""'\n\s]";
@@ -143,12 +145,23 @@ namespace Rynix_Scanner
                     Tokens.Add(t);
 
                 }
-                else if (Regex.IsMatch(match.ToString(), multi_comment) || Regex.IsMatch(match.ToString(), comment_content) || Regex.IsMatch(match.ToString(), string_content))
+                else if (Regex.IsMatch(match.ToString(), char_content)||Regex.IsMatch(match.ToString(), multi_comment) || Regex.IsMatch(match.ToString(), comment_content) || Regex.IsMatch(match.ToString(), string_content))
                 {
 
+                    if (t.lexeme[0] == '\'')
+                    {
+                        Token t2 = new Token();
+                        t2.lexeme = "\'";
+                        t2.token_type = Token_Class.DoubleQuote;
+                        Tokens.Add(t2);
 
+                        t.lexeme = t.lexeme[1..^1];// remove the quotation marks
+                        t.token_type = Token_Class.Text;
+                        Tokens.Add(t);
 
-                    if (t.lexeme[0] == '\"')
+                        Tokens.Add(t2);
+                    }
+                    else if (t.lexeme[0] == '\"')
                     {
                         Token t2 = new Token();
                         t2.lexeme = "\"";
