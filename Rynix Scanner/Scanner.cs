@@ -8,8 +8,8 @@ public enum Token_Class
     Var, Val, Fun, Class, If, Else, While, For, In, Return, True, False, Null, New, Print, Input, Break, Continue,
     Plus, Minus, Star, Slash, Percent, Assign, EqualEqual, Greater, GreaterEqual, Less, LessEqual, LeftParen, RightParen,
     LeftBrace, RightBrace, LeftBracket, RightBracket, LeftAngle,
-    RightAngle, Colon, Comma, Dot, DoubleQuote, SingleQuote, DoubleSlash, SlashStar, StarSlash, Identifier, Constant,Invalid, newLine,
-    Int, Float, String, Bool, Char, Array , Void , DotDot,NotEqual
+    RightAngle, Colon, Comma, Dot, DoubleQuote, SingleQuote, DoubleSlash, SlashStar, StarSlash, Identifier, Constant,Invalid, NewLine,
+    Int, Float, String, Bool, Char, Array , Void , DotDot,NotEqual, Text
 }
 
 
@@ -90,7 +90,7 @@ namespace Rynix_Scanner
             Operators.Add("//", Token_Class.DoubleSlash);
             Operators.Add("/*", Token_Class.SlashStar);
             Operators.Add("*/", Token_Class.StarSlash);
-            Operators.Add("\n", Token_Class.newLine);
+            Operators.Add("\n", Token_Class.NewLine);
             Operators.Add("..", Token_Class.DotDot);
             Operators.Add("!=", Token_Class.NotEqual);
 
@@ -102,20 +102,25 @@ namespace Rynix_Scanner
             string reserved_words =
             @"\b(var|val|fun|class|if|else|while|for|in|return|true|false|null|new|print|input|break|continue)\b";
 
-            string operators = @"==|>=|<=|//|/\*|\*/|\+|\-|\*|/|%|=|>|<|\(|\)|\{|\}|\[|\]|:|,|\.|""|'|\n|\.\.|!=";
+            string operators = @"==|>=|<=|//|/\*|\*/|\+|\-|\*|/|%|=|>|<|\(|\)|\{|\}|\[|\]|:|,|\.\.|""|'|\n|\.|!=";
 
             string identifiers = @"\b[a-zA-Z_][a-zA-Z0-9_]*\b";
 
             string constants = @"\b[0-9]+(\.[0-9]+)?\b";
 
-            string valid_tokens = reserved_words+ "|" + operators + "|" + identifiers + "|" + constants;
+            string comment_content = @"//(.+)(\n|$)";
+
+
+            string string_content = @"""(.+)""";
+            string multi_comment = @"/\*((.|\s)+)\*/";// multiline comment
+            string valid_tokens = multi_comment+"|"+comment_content+"|"+string_content + "|" + reserved_words + "|" + operators + "|" + identifiers + "|" + constants;
 
             string invalid_identefier = @$"\b[0-9]+[a-zA-Z_][a-zA-Z0-9_]*\b";
-            string invalid_character = @"[^a-zA-Z0-9_=/\*\+\-\%=><\(\)\{\}\[\]:,\.""'\n\s!]";
+            string invalid_character = @"[^a-zA-Z0-9_=/\*\+\-\%=><\(\)\{\}\[\]:,\.""'\n\s]";
             string invalid_tokens =  invalid_identefier + "|" + invalid_character;//not valid
      
-            MatchCollection Code_matches = Regex.Matches(code, valid_tokens);
-            MatchCollection invalid_Code_matches = Regex.Matches(code, invalid_tokens);
+            //MatchCollection Code_matches = Regex.Matches(code, valid_tokens);
+            //MatchCollection invalid_Code_matches = Regex.Matches(code, invalid_tokens);
 
             MatchCollection all_matches = Regex.Matches(code, valid_tokens+"|"+invalid_tokens);
 
@@ -136,6 +141,52 @@ namespace Rynix_Scanner
                 {
                     t.token_type = Operators[match.Value];
                     Tokens.Add(t);
+                }else if (Regex.IsMatch(match.ToString(), string_content))
+                {
+                    Token t2 = new Token();
+                    t2.lexeme = "\"";
+                    t2.token_type = Token_Class.DoubleQuote;
+                    Tokens.Add(t2);
+
+                    t.lexeme = t.lexeme[1..^1];// remove the quotation marks
+                    t.token_type = Token_Class.Text;
+                    Tokens.Add(t);
+
+                    Tokens.Add(t2);
+                }
+                else if (Regex.IsMatch(match.ToString(), comment_content))
+                {
+                    Token t2 = new Token();
+                    t2.lexeme = "//";
+                    t2.token_type = Token_Class.DoubleSlash;
+                    Tokens.Add(t2);
+
+                    t.lexeme=t.lexeme[2..]; // remove the //
+                    t.token_type = Token_Class.Text;
+                    Tokens.Add(t);
+
+                    Token t3 = new Token();
+                    t3.lexeme = "\n";
+                    t3.token_type = Token_Class.NewLine;
+
+                    Tokens.Add(t3);
+                }
+                else if (Regex.IsMatch(match.ToString(), multi_comment))
+                {
+                    Token t2 = new Token();
+                    t2.lexeme = "/*";
+                    t2.token_type = Token_Class.SlashStar;
+                    Tokens.Add(t2);
+
+                    t.lexeme = t.lexeme[2..^2]; // remove the //
+                    t.token_type = Token_Class.Text;
+                    Tokens.Add(t);
+
+                    Token t3 = new Token();
+                    t3.lexeme = "*/";
+                    t2.token_type = Token_Class.StarSlash;
+
+                    Tokens.Add(t3);
                 }
                 else if (Regex.IsMatch(match.ToString(), identifiers))
                 {
