@@ -111,8 +111,8 @@ namespace Rynix_Scanner
             string comment_content = @"//(.+)(\n|$)";
 
 
-            string string_content = @"""(.+)""";
-            string multi_comment = @"/\*((.|\s)+)\*/";// multiline comment
+            string string_content = @"""[^""\n]*""";
+            string multi_comment = @"/\*([\s\S]*?)\*/";// multiline comment
             string valid_tokens = multi_comment+"|"+comment_content+"|"+string_content + "|" + reserved_words + "|" + operators + "|" + identifiers + "|" + constants;
 
             string invalid_identefier = @$"\b[0-9]+[a-zA-Z_][a-zA-Z0-9_]*\b";
@@ -141,52 +141,62 @@ namespace Rynix_Scanner
                 {
                     t.token_type = Operators[match.Value];
                     Tokens.Add(t);
-                }else if (Regex.IsMatch(match.ToString(), string_content))
-                {
-                    Token t2 = new Token();
-                    t2.lexeme = "\"";
-                    t2.token_type = Token_Class.DoubleQuote;
-                    Tokens.Add(t2);
 
-                    t.lexeme = t.lexeme[1..^1];// remove the quotation marks
-                    t.token_type = Token_Class.Text;
-                    Tokens.Add(t);
-
-                    Tokens.Add(t2);
                 }
-                else if (Regex.IsMatch(match.ToString(), comment_content))
+                else if (Regex.IsMatch(match.ToString(), multi_comment) || Regex.IsMatch(match.ToString(), comment_content) || Regex.IsMatch(match.ToString(), string_content))
                 {
-                    Token t2 = new Token();
-                    t2.lexeme = "//";
-                    t2.token_type = Token_Class.DoubleSlash;
-                    Tokens.Add(t2);
 
-                    t.lexeme=t.lexeme[2..]; // remove the //
-                    t.token_type = Token_Class.Text;
-                    Tokens.Add(t);
 
-                    Token t3 = new Token();
-                    t3.lexeme = "\n";
-                    t3.token_type = Token_Class.NewLine;
 
-                    Tokens.Add(t3);
-                }
-                else if (Regex.IsMatch(match.ToString(), multi_comment))
-                {
-                    Token t2 = new Token();
-                    t2.lexeme = "/*";
-                    t2.token_type = Token_Class.SlashStar;
-                    Tokens.Add(t2);
+                    if (t.lexeme[0] == '\"')
+                    {
+                        Token t2 = new Token();
+                        t2.lexeme = "\"";
+                        t2.token_type = Token_Class.DoubleQuote;
+                        Tokens.Add(t2);
 
-                    t.lexeme = t.lexeme[2..^2]; // remove the //
-                    t.token_type = Token_Class.Text;
-                    Tokens.Add(t);
+                        t.lexeme = t.lexeme[1..^1];// remove the quotation marks
+                        t.token_type = Token_Class.Text;
+                        Tokens.Add(t);
 
-                    Token t3 = new Token();
-                    t3.lexeme = "*/";
-                    t2.token_type = Token_Class.StarSlash;
+                        Tokens.Add(t2);
+                    }
+                    else if (t.lexeme[0..2] == "/*")
+                    {
+                        Token t2 = new Token();
+                        t2.lexeme = "/*";
+                        t2.token_type = Token_Class.SlashStar;
+                        Tokens.Add(t2);
 
-                    Tokens.Add(t3);
+                        t.lexeme = t.lexeme[2..^2]; // remove the //
+                        t.token_type = Token_Class.Text;
+                        Tokens.Add(t);
+
+                        Token t3 = new Token();
+                        t3.lexeme = "*/";
+                        t3.token_type = Token_Class.StarSlash;
+
+                        Tokens.Add(t3);
+                    }
+                    else if (t.lexeme[0..2] == "//")
+                    {
+                        Token t2 = new Token();
+                        t2.lexeme = "//";
+                        t2.token_type = Token_Class.DoubleSlash;
+                        Tokens.Add(t2);
+
+                        t.lexeme = t.lexeme[2..]; // remove the //
+                        t.token_type = Token_Class.Text;
+                        Tokens.Add(t);
+
+                        Token t3 = new Token();
+                        t3.lexeme = "\n";
+                        t3.token_type = Token_Class.NewLine;
+
+                        Tokens.Add(t3);
+
+                    }
+
                 }
                 else if (Regex.IsMatch(match.ToString(), identifiers))
                 {
