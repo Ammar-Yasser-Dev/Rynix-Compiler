@@ -152,7 +152,7 @@ namespace Rynix_Scanner
                     {
                         Token t2 = new Token();
                         t2.lexeme = "\'";
-                        t2.token_type = Token_Class.DoubleQuote;
+                        t2.token_type = Token_Class.SingleQuote;
                         Tokens.Add(t2);
 
                         t.lexeme = t.lexeme[1..^1];// remove the quotation marks
