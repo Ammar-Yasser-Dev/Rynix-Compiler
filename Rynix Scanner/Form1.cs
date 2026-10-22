@@ -38,7 +38,7 @@ namespace Rynix_Scanner
             }
             for (int i = 0; i < rynix_scanner.Tokens.Count; i++)
             {
-                //if (rynix_scanner.Tokens.ElementAt(i).token_type != Token_Class.Invalid)
+                if (rynix_scanner.Tokens.ElementAt(i).token_type != Token_Class.Invalid)
                     LexemeAndTokenDataGridView.Rows.Add(rynix_scanner.Tokens.ElementAt(i).lexeme, rynix_scanner.Tokens.ElementAt(i).token_type);
             }
         }
