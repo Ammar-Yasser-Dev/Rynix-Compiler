@@ -100,7 +100,7 @@ namespace Rynix_Scanner
         public void Scan(string code)
         {
             string reserved_words =
-            @"\b(var|val|fun|class|if|else|while|for|in|return|true|false|null|new|print|input|break|continue)\b";
+            @"\b(var|val|fun|class|if|else|while|for|in|return|true|false|null|new|print|input|break|continue|Int|Float|String|Bool|Char|Array|Void)\b";
 
             string operators = @"==|>=|<=|//|/\*|\*/|\+|\-|\*|/|%|=|>|<|\(|\)|\{|\}|\[|\]|:|,|\.\.|""|'|\n|\.|!=";
 
