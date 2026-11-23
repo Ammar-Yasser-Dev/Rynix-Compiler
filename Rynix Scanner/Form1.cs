@@ -17,6 +17,7 @@ namespace Rynix_Scanner
             rynix_scanner.Scan(Code); // calls the scan function in Scanner.cs
             PrintTokens();
             prsr = new Parser(rynix_scanner.Tokens);
+            treeView2.Nodes.Add(Parser.PrintParseTree(prsr.root));
             print_parse_errors();
             rynix_scanner.Tokens.Clear();
             prsr.errors.Clear();
@@ -66,6 +67,7 @@ namespace Rynix_Scanner
             richTextBox1.Clear();
             LexemeAndTokenDataGridView.Rows.Clear();
             ErrorsDataGridView.Rows.Clear();
+            treeView2.Nodes.Clear();
         }
 
         private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)

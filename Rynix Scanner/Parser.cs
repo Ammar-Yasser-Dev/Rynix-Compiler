@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Xml.Linq;
 
 namespace Rynix_Scanner
 {
@@ -16,6 +17,16 @@ namespace Rynix_Scanner
             return message;
         }
     }
+    public class Node
+    {
+        public List<Node> Children = new List<Node>();
+
+        public string Name;
+        public Node(string N)
+        {
+            this.Name = N;
+        }
+    }
 
     internal class Parser
     {
@@ -24,7 +35,9 @@ namespace Rynix_Scanner
         Token cur_token;
         int cur_token_index = 0;
         bool at_end = false;          
-        int last_error_pos = -1;      
+        int last_error_pos = -1;
+
+        public Node root;
 
         public Parser(List<Token> _Tokens)
         {
@@ -32,7 +45,6 @@ namespace Rynix_Scanner
             set_current_token_to_next_token();
             Program();
         }
-
 
         private List<Token> RemoveNoise(List<Token> raw)
         {
@@ -66,7 +78,7 @@ namespace Rynix_Scanner
             return result;
         }
 
-
+        #region helper functions
         private bool IsEOF()
         {
             return at_end;
@@ -83,12 +95,10 @@ namespace Rynix_Scanner
             return Is(Token_Class.Identifier);
         }
 
-   
         private bool IsInit()
         {
             return Is(Token_Class.Identifier) && cur_token.lexeme == "init";
         }
-
 
         private bool IsNot()
         {
@@ -107,7 +117,6 @@ namespace Rynix_Scanner
             return Is(Token_Class.Int) || Is(Token_Class.Float) || Is(Token_Class.String) ||
                    Is(Token_Class.Bool) || Is(Token_Class.Char) || Is(Token_Class.Void);
         }
-
     
         private string CurLexeme()
         {
@@ -132,19 +141,24 @@ namespace Rynix_Scanner
             errors.Add(new Error(msg));
         }
 
-        private void match(Token_Class expected)
+        private Node match(Token_Class expected)
         {
             if (Is(expected))
+            {
                 set_current_token_to_next_token();
+                return new Node(expected.ToString());
+            }
             else
+            {
                 ReportError("unexpected token, Expected: " + expected.ToString() + ", found: " + CurLexeme());
+                return null;
+            }
         }
 
-        private void match_identifier()
+        private Node match_identifier()
         {
-            match(Token_Class.Identifier);
+            return match(Token_Class.Identifier);
         }
-
 
         private bool FirstStatement()
         {
@@ -175,617 +189,806 @@ namespace Rynix_Scanner
             return Is(Token_Class.EqualEqual) || Is(Token_Class.NotEqual) || Is(Token_Class.LessEqual) ||
                    Is(Token_Class.GreaterEqual) || Is(Token_Class.Less) || Is(Token_Class.Greater);
         }
+        #endregion
 
-
-        public void Program()
+        #region recurse functions
+        
+        public Node Program()
         {
             if (IsEOF())
             {
                 ReportError("Expected at least one declaration or statement");
-                return;
             }
 
             while (!IsEOF())
             {
                 if (FirstTopLevelItem())
-                    TopLevelList();
+                {
+                    root = new Node("Program");
+                    root.Children.Add(TopLevelList());
+                    
+                }
                 else
                 {
                     ReportError("unexpected token ' " + CurLexeme() + " ' at top level");
                     set_current_token_to_next_token();
                 }
             }
+            return root;
         }
 
-        public void TopLevelList()
+        public Node TopLevelList()
         {
-            TopLevelItem();
-            TopLevelList_();
+            Node TLL = new Node("TopLevelList");
+            TLL.Children.Add(TopLevelItem());
+            TLL.Children.Add(TopLevelList_());
+            return TLL;
         }
 
-        public void TopLevelList_()
+        public Node TopLevelList_()
         {
             if (FirstTopLevelItem())
             {
-                TopLevelItem();
-                TopLevelList_();
+                Node node = new Node("TopLevelList_");
+                node.Children.Add(TopLevelItem());
+                node.Children.Add(TopLevelList_());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void TopLevelItem()
+        public Node TopLevelItem()
         {
-            if (Is(Token_Class.Fun)) FunctionDecl();
-            else if (Is(Token_Class.Class)) ClassDecl();
-            else Statement();
+            Node node = new Node("TopLevelItem");
+            if (Is(Token_Class.Fun)) node.Children.Add(FunctionDecl());
+            else if (Is(Token_Class.Class)) node.Children.Add(ClassDecl());
+            else node.Children.Add(Statement());
+            return node;
         }
 
-        public void VarDecl()
+        public Node VarDecl()
         {
-            match(Token_Class.Var);
-            match_identifier();
-            VarDeclTail();
+            Node node = new Node("VarDecl");
+            node.Children.Add(match(Token_Class.Var));
+            node.Children.Add(match_identifier());
+            node.Children.Add(VarDeclTail());
+            return node;
         }
 
-        public void VarDeclTail()
+        public Node VarDeclTail()
         {
+            Node node = new Node("VarDeclTail");
             if (Is(Token_Class.Colon))
             {
-                match(Token_Class.Colon);
-                Type();
-                VarInit();
+                node.Children.Add(match(Token_Class.Colon));
+                node.Children.Add(Type());
+                node.Children.Add(VarInit());
             }
             else if (Is(Token_Class.Assign))
             {
-                match(Token_Class.Assign);
-                Expression();
+                node.Children.Add(match(Token_Class.Assign));
+                node.Children.Add(Expression());
             }
             else
                 ReportError("Expected ':' or '=' after variable name, found: " + CurLexeme());
+            return node;
         }
 
-        public void VarInit()
+        public Node VarInit()
         {
             if (Is(Token_Class.Assign))
             {
-                match(Token_Class.Assign);
-                Expression();
+                Node node = new Node("VarInit");
+                node.Children.Add(match(Token_Class.Assign));
+                node.Children.Add(Expression());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void ValDecl()
+        public Node ValDecl()
         {
-            match(Token_Class.Val);
-            match_identifier();
-            ValDeclTail();
+            Node node = new Node("ValDecl");
+            node.Children.Add(match(Token_Class.Val));
+            node.Children.Add(match_identifier());
+            node.Children.Add(ValDeclTail());
+            return node;
         }
 
-        public void ValDeclTail()
+        public Node ValDeclTail()
         {
+            Node node = new Node("ValDeclTail");
             if (Is(Token_Class.Colon))
             {
-                match(Token_Class.Colon);
-                Type();
-                match(Token_Class.Assign);
-                Expression();
+                node.Children.Add(match(Token_Class.Colon));
+                node.Children.Add(Type());
+                node.Children.Add(match(Token_Class.Assign));
+                node.Children.Add(Expression());
             }
             else if (Is(Token_Class.Assign))
             {
-                match(Token_Class.Assign);
-                Expression();
+                node.Children.Add(match(Token_Class.Assign));
+                node.Children.Add(Expression());
             }
             else
                 ReportError("Expected ':' or '=' after constant name, found: " + CurLexeme());
+            return node;
         }
-
  
-        public void Type()
+        public Node Type()
         {
+            Node node = new Node("Type");
             if (IsPrimitiveType())
+            {
+                node.Children.Add(new Node(cur_token.token_type.ToString()));
                 set_current_token_to_next_token();
+            }
             else if (Is(Token_Class.Array))
-                ArrayType();
+                node.Children.Add(ArrayType());
             else if (IsIdentifier())
-                match_identifier();
+                node.Children.Add(match_identifier());
             else
                 ReportError("Expected a type, found: " + CurLexeme());
+            return node;
         }
 
-        public void ArrayType()
+        public Node ArrayType()
         {
-            match(Token_Class.Array);
-            match(Token_Class.Less);
-            Type();
-            match(Token_Class.Greater);
+            Node node = new Node("ArrayType");
+            node.Children.Add(match(Token_Class.Array));
+            node.Children.Add(match(Token_Class.Less));
+            node.Children.Add(Type());
+            node.Children.Add(match(Token_Class.Greater));
+            return node;
         }
 
-
-        public void FunctionDecl()
+        public Node FunctionDecl()
         {
-            match(Token_Class.Fun);
-            match_identifier();
-            match(Token_Class.LeftParen);
-            ParamsListOptional();
-            match(Token_Class.RightParen);
-            match(Token_Class.Colon);
-            Type();
-            Block();
+            Node node = new Node("FunctionDecl");
+            node.Children.Add(match(Token_Class.Fun));
+            node.Children.Add(match_identifier());
+            node.Children.Add(match(Token_Class.LeftParen));
+            node.Children.Add(ParamsListOptional());
+            node.Children.Add(match(Token_Class.RightParen));
+            node.Children.Add(match(Token_Class.Colon));
+            node.Children.Add(Type());
+            node.Children.Add(Block());
+            return node;
         }
 
-        public void ParamsListOptional()
+        public Node ParamsListOptional()
         {
             if (IsIdentifier())
-                ParamList();
+            {
+                Node node = new Node("ParamsListOptional");
+                node.Children.Add(ParamList());
+                return node;
+            }
             // else epsilon
+            return null;
         }
 
-        public void ParamList()
+        public Node ParamList()
         {
-            Param();
-            ParamList_();
+            Node node = new Node("ParamList");
+            node.Children.Add(Param());
+            node.Children.Add(ParamList_());
+            return node;
         }
 
-        public void ParamList_()
+        public Node ParamList_()
         {
             if (Is(Token_Class.Comma))
             {
-                match(Token_Class.Comma);
-                Param();
-                ParamList_();
+                Node node = new Node("ParamList_");
+                node.Children.Add(match(Token_Class.Comma));
+                node.Children.Add(Param());
+                node.Children.Add(ParamList_());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void Param()
+        public Node Param()
         {
-            match_identifier();
-            match(Token_Class.Colon);
-            Type();
+            Node node = new Node("Param");
+            node.Children.Add(match_identifier());
+            node.Children.Add(match(Token_Class.Colon));
+            node.Children.Add(Type());
+            return node;
         }
 
- 
-        public void ClassDecl()
+        public Node ClassDecl()
         {
-            match(Token_Class.Class);
-            match_identifier();
-            match(Token_Class.LeftBrace);
-            ClassBodyOptional();
+            Node node = new Node("ClassDecl");
+            node.Children.Add(match(Token_Class.Class));
+            node.Children.Add(match_identifier());
+            node.Children.Add(match(Token_Class.LeftBrace));
+            node.Children.Add(ClassBodyOptional());
 
             while (!Is(Token_Class.RightBrace) && !IsEOF())
             {
                 ReportError("unexpected token '" + CurLexeme() + "' in class body");
                 set_current_token_to_next_token();
                 if (FirstClassMember())
-                    ClassBodyOptional();
+                    node.Children.Add(ClassBodyOptional());
             }
 
-            match(Token_Class.RightBrace);
+            node.Children.Add(match(Token_Class.RightBrace));
+            return node;
         }
 
-        public void ClassBodyOptional()
-        {
-            if (FirstClassMember())
-                ClassBody();
-            // else epsilon
-        }
-
-        public void ClassBody()
-        {
-            ClassMember();
-            ClassBody_();
-        }
-
-        public void ClassBody_()
+        public Node ClassBodyOptional()
         {
             if (FirstClassMember())
             {
-                ClassMember();
-                ClassBody_();
+                Node node = new Node("ClassBodyOptional");
+                node.Children.Add(ClassBody());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void ClassMember()
+        public Node ClassBody()
         {
-            if (Is(Token_Class.Var)) VarDecl();
-            else if (Is(Token_Class.Val)) ValDecl();
-            else if (Is(Token_Class.Fun)) FunctionDecl();
-            else if (IsInit()) ConstructorDecl();
+            Node node = new Node("ClassBody");
+            node.Children.Add(ClassMember());
+            node.Children.Add(ClassBody_());
+            return node;
+        }
+
+        public Node ClassBody_()
+        {
+            if (FirstClassMember())
+            {
+                Node node = new Node("ClassBody_");
+                node.Children.Add(ClassMember());
+                node.Children.Add(ClassBody_());
+                return node;
+            }
+            // else epsilon
+            return null;
+        }
+
+        public Node ClassMember()
+        {
+            Node node = new Node("ClassMember");
+            if (Is(Token_Class.Var)) node.Children.Add(VarDecl());
+            else if (Is(Token_Class.Val)) node.Children.Add(ValDecl());
+            else if (Is(Token_Class.Fun)) node.Children.Add(FunctionDecl());
+            else if (IsInit()) node.Children.Add(ConstructorDecl());
             else ReportError("Expected a class member, found: " + CurLexeme());
+            return node;
         }
 
-        public void ConstructorDecl()
+        public Node ConstructorDecl()
         {
-            match_identifier();         
-            match(Token_Class.LeftParen);
-            ParamsListOptional();
-            match(Token_Class.RightParen);
-            Block();
+            Node node = new Node("ConstructorDecl");
+            node.Children.Add(match_identifier());         
+            node.Children.Add(match(Token_Class.LeftParen));
+            node.Children.Add(ParamsListOptional());
+            node.Children.Add(match(Token_Class.RightParen));
+            node.Children.Add(Block());
+            return node;
         }
 
-
-        public void Block()
+        public Node Block()
         {
-            match(Token_Class.LeftBrace);
-            StatementListOptional();
+            Node node = new Node("Block");
+            node.Children.Add(match(Token_Class.LeftBrace));
+            node.Children.Add(StatementListOptional());
 
             while (!Is(Token_Class.RightBrace) && !IsEOF())
             {
                 ReportError("unexpected token ' " + CurLexeme() + " ' in block");
                 set_current_token_to_next_token();
                 if (FirstStatement())
-                    StatementListOptional();
+                    node.Children.Add(StatementListOptional());
             }
 
-            match(Token_Class.RightBrace);
+            node.Children.Add(match(Token_Class.RightBrace));
+            return node;
         }
 
-        public void StatementListOptional()
-        {
-            if (FirstStatement())
-                StatementList();
-            // else epsilon
-        }
-
-        public void StatementList()
-        {
-            Statement();
-            StatementList_();
-        }
-
-        public void StatementList_()
+        public Node StatementListOptional()
         {
             if (FirstStatement())
             {
-                Statement();
-                StatementList_();
+                Node node = new Node("StatementListOptional");
+                node.Children.Add(StatementList());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void Statement()
+        public Node StatementList()
         {
-            if (Is(Token_Class.Var)) VarDecl();
-            else if (Is(Token_Class.Val)) ValDecl();
-            else if (IsIdentifier()) AssignmentOrCall(); 
-            else if (Is(Token_Class.If)) IfStatement();
-            else if (Is(Token_Class.For)) Forloop();
-            else if (Is(Token_Class.While)) Whileloop();
-            else if (Is(Token_Class.Return)) ReturnStatement();
-            else if (Is(Token_Class.Break) || Is(Token_Class.Continue)) ControlFlowStatement();
-            else if (Is(Token_Class.Print)) PrintStatement();
+            Node node = new Node("StatementList");
+            node.Children.Add(Statement());
+            node.Children.Add(StatementList_());
+            return node;
+        }
+
+        public Node StatementList_()
+        {
+            if (FirstStatement())
+            {
+                Node node = new Node("StatementList_");
+                node.Children.Add(Statement());
+                node.Children.Add(StatementList_());
+                return node;
+            }
+            // else epsilon
+            return null;
+        }
+
+        public Node Statement()
+        {
+            Node node = new Node("Statement");
+            if (Is(Token_Class.Var)) node.Children.Add(VarDecl());
+            else if (Is(Token_Class.Val)) node.Children.Add(ValDecl());
+            else if (IsIdentifier()) node.Children.Add(AssignmentOrCall()); 
+            else if (Is(Token_Class.If)) node.Children.Add(IfStatement());
+            else if (Is(Token_Class.For)) node.Children.Add(Forloop());
+            else if (Is(Token_Class.While)) node.Children.Add(Whileloop());
+            else if (Is(Token_Class.Return)) node.Children.Add(ReturnStatement());
+            else if (Is(Token_Class.Break) || Is(Token_Class.Continue)) node.Children.Add(ControlFlowStatement());
+            else if (Is(Token_Class.Print)) node.Children.Add(PrintStatement());
             else ReportError("Expected a statement, found: " + CurLexeme());
+            return node;
         }
 
-   
-        private void AssignmentOrCall()
+        private Node AssignmentOrCall()
         {
-            LHS();
+            Node node = new Node("AssignmentOrCall");
+            node.Children.Add(LHS());
             if (Is(Token_Class.Assign))
             {
-                match(Token_Class.Assign);
-                Expression();
+                node.Children.Add(match(Token_Class.Assign));
+                node.Children.Add(Expression());
             }
             else if (Is(Token_Class.LeftParen))
             {
-                match(Token_Class.LeftParen);
-                ArgListOpt();
-                match(Token_Class.RightParen);
+                node.Children.Add(match(Token_Class.LeftParen));
+                node.Children.Add(ArgListOpt());
+                node.Children.Add(match(Token_Class.RightParen));
             }
             else
                 ReportError("Expected '=' or '(' after identifier, found: " + CurLexeme());
+            return node;
         }
 
-
-        public void LHS()
+        public Node LHS()
         {
-            match_identifier();
-            LHS_();
+            Node node = new Node("LHS");
+            node.Children.Add(match_identifier());
+            node.Children.Add(LHS_());
+            return node;
         }
 
-        public void LHS_()
+        public Node LHS_()
         {
             if (Is(Token_Class.LeftBracket))
             {
-                match(Token_Class.LeftBracket);
-                Expression();
-                match(Token_Class.RightBracket);
-                LHS_();
+                Node node = new Node("LHS_");
+                node.Children.Add(match(Token_Class.LeftBracket));
+                node.Children.Add(Expression());
+                node.Children.Add(match(Token_Class.RightBracket));
+                node.Children.Add(LHS_());
+                return node;
             }
             else if (Is(Token_Class.Dot))
             {
-                match(Token_Class.Dot);
-                match_identifier();
-                LHS_();
+                Node node = new Node("LHS_");
+                node.Children.Add(match(Token_Class.Dot));
+                node.Children.Add(match_identifier());
+                node.Children.Add(LHS_());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void IfStatement()
+        public Node IfStatement()
         {
-            match(Token_Class.If);
-            Expression();
-            Block();
-            IfTail();
+            Node node = new Node("IfStatement");
+            node.Children.Add(match(Token_Class.If));
+            node.Children.Add(Expression());
+            node.Children.Add(Block());
+            node.Children.Add(IfTail());
+            return node;
         }
 
-        public void IfTail()
+        public Node IfTail()
         {
             if (Is(Token_Class.Else))
             {
-                match(Token_Class.Else);
-                Block();
+                Node node = new Node("IfTail");
+                node.Children.Add(match(Token_Class.Else));
+                node.Children.Add(Block());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void Forloop()
+        public Node Forloop()
         {
-            match(Token_Class.For);
-            match_identifier();
-            match(Token_Class.In);
-            Expression();
-            ForTail();
+            Node node = new Node("Forloop");
+            node.Children.Add(match(Token_Class.For));
+            node.Children.Add(match_identifier());
+            node.Children.Add(match(Token_Class.In));
+            node.Children.Add(Expression());
+            node.Children.Add(ForTail());
+            return node;
         }
 
-        public void ForTail()
+        public Node ForTail()
         {
+            Node node = new Node("ForTail");
             if (Is(Token_Class.DotDot))
             {
-                match(Token_Class.DotDot);
-                Expression();
-                Block();
+                node.Children.Add(match(Token_Class.DotDot));
+                node.Children.Add(Expression());
+                node.Children.Add(Block());
             }
             else
-                Block();
+                node.Children.Add(Block());
+            return node;
         }
 
-        public void Whileloop()
+        public Node Whileloop()
         {
-            match(Token_Class.While);
-            Expression();
-            Block();
+            Node node = new Node("Whileloop");
+            node.Children.Add(match(Token_Class.While));
+            node.Children.Add(Expression());
+            node.Children.Add(Block());
+            return node;
         }
 
-        public void ReturnStatement()
+        public Node ReturnStatement()
         {
-            match(Token_Class.Return);
-            ReturnTail();
+            Node node = new Node("ReturnStatement");
+            node.Children.Add(match(Token_Class.Return));
+            node.Children.Add(ReturnTail());
+            return node;
         }
 
-        public void ReturnTail()
+        public Node ReturnTail()
         {
             if (FirstExpression())
-                Expression();
+            {
+                Node node = new Node("ReturnTail");
+                node.Children.Add(Expression());
+                return node;
+            }
             // else epsilon
+            return null;
         }
 
-        public void ControlFlowStatement()
+        public Node ControlFlowStatement()
         {
-            if (Is(Token_Class.Break)) match(Token_Class.Break);
-            else if (Is(Token_Class.Continue)) match(Token_Class.Continue);
+            Node node = new Node("ControlFlowStatement");
+            if (Is(Token_Class.Break)) node.Children.Add(match(Token_Class.Break));
+            else if (Is(Token_Class.Continue)) node.Children.Add(match(Token_Class.Continue));
             else ReportError("Expected 'break' or 'continue', found: " + CurLexeme());
+            return node;
         }
 
-        public void PrintStatement()
+        public Node PrintStatement()
         {
-            match(Token_Class.Print);
-            match(Token_Class.LeftParen);
-            ArgListOpt();
-            match(Token_Class.RightParen);
+            Node node = new Node("PrintStatement");
+            node.Children.Add(match(Token_Class.Print));
+            node.Children.Add(match(Token_Class.LeftParen));
+            node.Children.Add(ArgListOpt());
+            node.Children.Add(match(Token_Class.RightParen));
+            return node;
         }
 
-        public void FunctionCall()
+        public Node FunctionCall()
         {
-            LHS();
-            match(Token_Class.LeftParen);
-            ArgListOpt();
-            match(Token_Class.RightParen);
+            Node node = new Node("FunctionCall");
+            node.Children.Add(LHS());
+            node.Children.Add(match(Token_Class.LeftParen));
+            node.Children.Add(ArgListOpt());
+            node.Children.Add(match(Token_Class.RightParen));
+            return node;
         }
 
-        public void Expression()
+        public Node Expression()
         {
-            AddExpr();
-            Expression_();
+            Node node = new Node("Expression");
+            node.Children.Add(AddExpr());
+            node.Children.Add(Expression_());
+            return node;
         }
 
-        public void Expression_()
+        public Node Expression_()
         {
             if (IsRelOp())
             {
-                RelOp();
-                AddExpr();
-                Expression_();
+                Node node = new Node("Expression_");
+                node.Children.Add(RelOp());
+                node.Children.Add(AddExpr());
+                node.Children.Add(Expression_());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void RelOp()
+        public Node RelOp()
         {
+            Node node = new Node("RelOp");
             if (IsRelOp())
+            {
+                node.Children.Add(new Node(cur_token.token_type.ToString()));
                 set_current_token_to_next_token();
+            }
             else
                 ReportError("Expected a comparison operator, found: " + CurLexeme());
+            return node;
         }
 
-        public void AddExpr()
+        public Node AddExpr()
         {
-            MultExpr();
-            AddExpr_();
+            Node node = new Node("AddExpr");
+            node.Children.Add(MultExpr());
+            node.Children.Add(AddExpr_());
+            return node;
         }
 
-        public void AddExpr_()
+        public Node AddExpr_()
         {
             if (Is(Token_Class.Plus) || Is(Token_Class.Minus))
             {
-                AddOp();
-                MultExpr();
-                AddExpr_();
+                Node node = new Node("AddExpr_");
+                node.Children.Add(AddOp());
+                node.Children.Add(MultExpr());
+                node.Children.Add(AddExpr_());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void AddOp()
+        public Node AddOp()
         {
+            Node node = new Node("AddOp");
             if (Is(Token_Class.Plus) || Is(Token_Class.Minus))
+            {
+                node.Children.Add(new Node(cur_token.token_type.ToString()));
                 set_current_token_to_next_token();
+            }
             else
                 ReportError("Expected '+' or '-', found: " + CurLexeme());
+            return node;
         }
 
-        public void MultExpr()
+        public Node MultExpr()
         {
-            UnaryExpr();
-            MultExpr_();
+            Node node = new Node("MultExpr");
+            node.Children.Add(UnaryExpr());
+            node.Children.Add(MultExpr_());
+            return node;
         }
 
-        public void MultExpr_()
+        public Node MultExpr_()
         {
             if (Is(Token_Class.Star) || Is(Token_Class.Slash) || Is(Token_Class.Percent))
             {
-                MulOp();
-                UnaryExpr();
-                MultExpr_();
+                Node node = new Node("MultExpr_");
+                node.Children.Add(MulOp());
+                node.Children.Add(UnaryExpr());
+                node.Children.Add(MultExpr_());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void MulOp()
+        public Node MulOp()
         {
+            Node node = new Node("MulOp");
             if (Is(Token_Class.Star) || Is(Token_Class.Slash) || Is(Token_Class.Percent))
-                set_current_token_to_next_token();
-            else
-                ReportError("Expected '*', '/' or '%', found: " + CurLexeme());
-        }
-
-        public void UnaryExpr()
-        {
-            if (Is(Token_Class.Minus) || IsNot())
             {
+                node.Children.Add(new Node(cur_token.token_type.ToString()));
                 set_current_token_to_next_token();
-                UnaryExpr();
             }
             else
-                PostfixExpr();
+                ReportError("Expected '*', '/' or '%', found: " + CurLexeme());
+            return node;
         }
 
-        public void PostfixExpr()
+        public Node UnaryExpr()
         {
-            PrimaryExpr();
-            PostfixExpr_();
+            Node node = new Node("UnaryExpr");
+            if (Is(Token_Class.Minus) || IsNot())
+            {
+                node.Children.Add(new Node(cur_token.token_type.ToString()));
+                set_current_token_to_next_token();
+                node.Children.Add(UnaryExpr());
+            }
+            else
+                node.Children.Add(PostfixExpr());
+            return node;
         }
 
-        public void PostfixExpr_()
+        public Node PostfixExpr()
+        {
+            Node node = new Node("PostfixExpr");
+            node.Children.Add(PrimaryExpr());
+            node.Children.Add(PostfixExpr_());
+            return node;
+        }
+
+        public Node PostfixExpr_()
         {
             if (Is(Token_Class.LeftParen))
             {
-                match(Token_Class.LeftParen);
-                ArgListOpt();
-                match(Token_Class.RightParen);
-                PostfixExpr_();
+                Node node = new Node("PostfixExpr_");
+                node.Children.Add(match(Token_Class.LeftParen));
+                node.Children.Add(ArgListOpt());
+                node.Children.Add(match(Token_Class.RightParen));
+                node.Children.Add(PostfixExpr_());
+                return node;
             }
             else if (Is(Token_Class.LeftBracket))
             {
-                match(Token_Class.LeftBracket);
-                Expression();
-                match(Token_Class.RightBracket);
-                PostfixExpr_();
+                Node node = new Node("PostfixExpr_");
+                node.Children.Add(match(Token_Class.LeftBracket));
+                node.Children.Add(Expression());
+                node.Children.Add(match(Token_Class.RightBracket));
+                node.Children.Add(PostfixExpr_());
+                return node;
             }
             else if (Is(Token_Class.Dot))
             {
-                match(Token_Class.Dot);
-                match_identifier();
-                PostfixExpr_();
+                Node node = new Node("PostfixExpr_");
+                node.Children.Add(match(Token_Class.Dot));
+                node.Children.Add(match_identifier());
+                node.Children.Add(PostfixExpr_());
+                return node;
             }
             // else epsilon
+            return null;
         }
 
-        public void PrimaryExpr()
+        public Node PrimaryExpr()
         {
-            if (IsIdentifier()) match_identifier();
-            else if (IsLiteral()) Literal();
+            Node node = new Node("PrimaryExpr");
+            if (IsIdentifier()) node.Children.Add(match_identifier());
+            else if (IsLiteral()) node.Children.Add(Literal());
             else if (Is(Token_Class.LeftParen))
             {
-                match(Token_Class.LeftParen);
-                Expression();
-                match(Token_Class.RightParen);
+                node.Children.Add(match(Token_Class.LeftParen));
+                node.Children.Add(Expression());
+                node.Children.Add(match(Token_Class.RightParen));
             }
-            else if (Is(Token_Class.LeftBracket)) ArrayLiteral();
-            else if (Is(Token_Class.New)) ObjectCreation();
-            else if (Is(Token_Class.Input)) InputExpr();
+            else if (Is(Token_Class.LeftBracket)) node.Children.Add(ArrayLiteral());
+            else if (Is(Token_Class.New)) node.Children.Add(ObjectCreation());
+            else if (Is(Token_Class.Input)) node.Children.Add(InputExpr());
             else ReportError("Expected an expression, found: " + CurLexeme());
+            return node;
         }
 
-
-        public void Literal()
+        public Node Literal()
         {
+            Node node = new Node("Literal");
             if (Is(Token_Class.Constant) || Is(Token_Class.True) ||
                 Is(Token_Class.False) || Is(Token_Class.Null))
             {
+                node.Children.Add(new Node(cur_token.token_type.ToString()));
                 set_current_token_to_next_token();
             }
             else if (Is(Token_Class.DoubleQuote))
             {
-                match(Token_Class.DoubleQuote);
-                match(Token_Class.Text);
-                match(Token_Class.DoubleQuote);
+                node.Children.Add(match(Token_Class.DoubleQuote));
+                node.Children.Add(match(Token_Class.Text));
+                node.Children.Add(match(Token_Class.DoubleQuote));
             }
             else if (Is(Token_Class.SingleQuote))
             {
-                match(Token_Class.SingleQuote);
-                match(Token_Class.Text);
-                match(Token_Class.SingleQuote);
+                node.Children.Add(match(Token_Class.SingleQuote));
+                node.Children.Add(match(Token_Class.Text));
+                node.Children.Add(match(Token_Class.SingleQuote));
             }
             else
                 ReportError("Expected a literal, found: " + CurLexeme());
+            return node;
         }
 
-        public void ArrayLiteral()
+        public Node ArrayLiteral()
         {
-            match(Token_Class.LeftBracket);
-            ArgListOpt();
-            match(Token_Class.RightBracket);
+            Node node = new Node("ArrayLiteral");
+            node.Children.Add(match(Token_Class.LeftBracket));
+            node.Children.Add(ArgListOpt());
+            node.Children.Add(match(Token_Class.RightBracket));
+            return node;
         }
 
-        public void ObjectCreation()
+        public Node ObjectCreation()
         {
-            match(Token_Class.New);
-            match_identifier();
-            match(Token_Class.LeftParen);
-            ArgListOpt();
-            match(Token_Class.RightParen);
+            Node node = new Node("ObjectCreation");
+            node.Children.Add(match(Token_Class.New));
+            node.Children.Add(match_identifier());
+            node.Children.Add(match(Token_Class.LeftParen));
+            node.Children.Add(ArgListOpt());
+            node.Children.Add(match(Token_Class.RightParen));
+            return node;
         }
 
-        public void InputExpr()
+        public Node InputExpr()
         {
-            match(Token_Class.Input);
-            match(Token_Class.LeftParen);
-            match(Token_Class.RightParen);
+            Node node = new Node("InputExpr");
+            node.Children.Add(match(Token_Class.Input));
+            node.Children.Add(match(Token_Class.LeftParen));
+            node.Children.Add(match(Token_Class.RightParen));
+            return node;
         }
 
-        public void ArgListOpt()
+        public Node ArgListOpt()
         {
             if (FirstExpression())
-                ArgList();
+            {
+                Node node = new Node("ArgListOpt");
+                node.Children.Add(ArgList());
+                return node;
+            }
             // else epsilon
+            return null;
         }
 
-        public void ArgList()
+        public Node ArgList()
         {
-            Expression();
-            ArgList_();
+            Node node = new Node("ArgList");
+            node.Children.Add(Expression());
+            node.Children.Add(ArgList_());
+            return node;
         }
 
-        public void ArgList_()
+        public Node ArgList_()
         {
             if (Is(Token_Class.Comma))
             {
-                match(Token_Class.Comma);
-                Expression();
-                ArgList_();
+                Node node = new Node("ArgList_");
+                node.Children.Add(match(Token_Class.Comma));
+                node.Children.Add(Expression());
+                node.Children.Add(ArgList_());
+                return node;
             }
             // else epsilon
+            return null;
+        }
+        #endregion
+
+        public static TreeNode PrintParseTree(Node root)
+        {
+            TreeNode tree = new TreeNode("Parse Tree");
+            TreeNode treeRoot = PrintTree(root);
+            if (treeRoot != null)
+                tree.Nodes.Add(treeRoot);
+            return tree;
+        }
+        static TreeNode PrintTree(Node root)
+        {
+            if (root == null || root.Name == null)
+                return null;
+            TreeNode tree = new TreeNode(root.Name);
+            if (root.Children.Count == 0)
+                return tree;
+            foreach (Node child in root.Children)
+            {
+                if (child == null)
+                    continue;
+                tree.Nodes.Add(PrintTree(child));
+            }
+            return tree;
         }
     }
 }

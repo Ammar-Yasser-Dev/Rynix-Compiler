@@ -37,27 +37,26 @@
             ErrorsDataGridView = new DataGridView();
             dataGridViewTextBoxColumn1 = new DataGridViewTextBoxColumn();
             dataGridViewTextBoxColumn2 = new DataGridViewTextBoxColumn();
+            treeView2 = new TreeView();
             ((System.ComponentModel.ISupportInitialize)LexemeAndTokenDataGridView).BeginInit();
             ((System.ComponentModel.ISupportInitialize)ErrorsDataGridView).BeginInit();
             SuspendLayout();
             // 
             // button1
             // 
-            button1.Location = new Point(816, 15);
-            button1.Margin = new Padding(4);
+            button1.Location = new Point(653, 12);
             button1.Name = "button1";
-            button1.Size = new Size(169, 280);
+            button1.Size = new Size(135, 224);
             button1.TabIndex = 0;
-            button1.Text = "Scan";
+            button1.Text = "Parse";
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
             // 
             // richTextBox1
             // 
-            richTextBox1.Location = new Point(44, 15);
-            richTextBox1.Margin = new Padding(4);
+            richTextBox1.Location = new Point(35, 12);
             richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(376, 448);
+            richTextBox1.Size = new Size(302, 359);
             richTextBox1.TabIndex = 1;
             richTextBox1.Text = "";
             richTextBox1.TextChanged += richTextBox1_TextChanged;
@@ -66,11 +65,10 @@
             // 
             LexemeAndTokenDataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             LexemeAndTokenDataGridView.Columns.AddRange(new DataGridViewColumn[] { Lexeme, Token_Type });
-            LexemeAndTokenDataGridView.Location = new Point(429, 15);
-            LexemeAndTokenDataGridView.Margin = new Padding(4);
+            LexemeAndTokenDataGridView.Location = new Point(343, 12);
             LexemeAndTokenDataGridView.Name = "LexemeAndTokenDataGridView";
             LexemeAndTokenDataGridView.RowHeadersWidth = 51;
-            LexemeAndTokenDataGridView.Size = new Size(380, 449);
+            LexemeAndTokenDataGridView.Size = new Size(304, 359);
             LexemeAndTokenDataGridView.TabIndex = 3;
             LexemeAndTokenDataGridView.CellContentClick += dataGridView2_CellContentClick;
             // 
@@ -90,10 +88,9 @@
             // 
             // button2
             // 
-            button2.Location = new Point(816, 302);
-            button2.Margin = new Padding(4);
+            button2.Location = new Point(653, 242);
             button2.Name = "button2";
-            button2.Size = new Size(169, 161);
+            button2.Size = new Size(135, 129);
             button2.TabIndex = 4;
             button2.Text = "Clear";
             button2.UseVisualStyleBackColor = true;
@@ -104,11 +101,10 @@
             ErrorsDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             ErrorsDataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             ErrorsDataGridView.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewTextBoxColumn2 });
-            ErrorsDataGridView.Location = new Point(44, 476);
-            ErrorsDataGridView.Margin = new Padding(4);
+            ErrorsDataGridView.Location = new Point(35, 381);
             ErrorsDataGridView.Name = "ErrorsDataGridView";
             ErrorsDataGridView.RowHeadersWidth = 51;
-            ErrorsDataGridView.Size = new Size(943, 250);
+            ErrorsDataGridView.Size = new Size(754, 200);
             ErrorsDataGridView.TabIndex = 5;
             ErrorsDataGridView.CellContentClick += dataGridView1_CellContentClick;
             // 
@@ -124,19 +120,26 @@
             dataGridViewTextBoxColumn2.MinimumWidth = 6;
             dataGridViewTextBoxColumn2.Name = "dataGridViewTextBoxColumn2";
             // 
+            // treeView2
+            // 
+            treeView2.Location = new Point(794, 12);
+            treeView2.Name = "treeView2";
+            treeView2.Size = new Size(525, 567);
+            treeView2.TabIndex = 6;
+            // 
             // Form1
             // 
-            AutoScaleDimensions = new SizeF(10F, 25F);
+            AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1000, 739);
+            ClientSize = new Size(1331, 591);
+            Controls.Add(treeView2);
             Controls.Add(ErrorsDataGridView);
             Controls.Add(button2);
             Controls.Add(LexemeAndTokenDataGridView);
             Controls.Add(richTextBox1);
             Controls.Add(button1);
-            Margin = new Padding(4);
             Name = "Form1";
-            Text = "Scanner";
+            Text = "Parser";
             ((System.ComponentModel.ISupportInitialize)LexemeAndTokenDataGridView).EndInit();
             ((System.ComponentModel.ISupportInitialize)ErrorsDataGridView).EndInit();
             ResumeLayout(false);
@@ -153,5 +156,8 @@
         private DataGridView ErrorsDataGridView;
         private DataGridViewTextBoxColumn dataGridViewTextBoxColumn1;
         private DataGridViewTextBoxColumn dataGridViewTextBoxColumn2;
+
+        private System.Windows.Forms.TreeView treeView1;
+        private TreeView treeView2;
     }
 }
