@@ -101,13 +101,14 @@
             // 
             // ErrorsDataGridView
             // 
+            ErrorsDataGridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             ErrorsDataGridView.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             ErrorsDataGridView.Columns.AddRange(new DataGridViewColumn[] { dataGridViewTextBoxColumn1, dataGridViewTextBoxColumn2 });
             ErrorsDataGridView.Location = new Point(44, 476);
             ErrorsDataGridView.Margin = new Padding(4);
             ErrorsDataGridView.Name = "ErrorsDataGridView";
             ErrorsDataGridView.RowHeadersWidth = 51;
-            ErrorsDataGridView.Size = new Size(941, 250);
+            ErrorsDataGridView.Size = new Size(943, 250);
             ErrorsDataGridView.TabIndex = 5;
             ErrorsDataGridView.CellContentClick += dataGridView1_CellContentClick;
             // 
@@ -116,14 +117,12 @@
             dataGridViewTextBoxColumn1.HeaderText = "Error";
             dataGridViewTextBoxColumn1.MinimumWidth = 6;
             dataGridViewTextBoxColumn1.Name = "dataGridViewTextBoxColumn1";
-            dataGridViewTextBoxColumn1.Width = 125;
             // 
             // dataGridViewTextBoxColumn2
             // 
             dataGridViewTextBoxColumn2.HeaderText = "Error Details";
             dataGridViewTextBoxColumn2.MinimumWidth = 6;
             dataGridViewTextBoxColumn2.Name = "dataGridViewTextBoxColumn2";
-            dataGridViewTextBoxColumn2.Width = 125;
             // 
             // Form1
             // 

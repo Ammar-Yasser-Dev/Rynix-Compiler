@@ -5,6 +5,7 @@ namespace Rynix_Scanner
     public partial class Form1 : Form
     {
         Scanner rynix_scanner = new Scanner();
+        Parser prsr;
         public Form1()
         {
             InitializeComponent();
@@ -15,7 +16,20 @@ namespace Rynix_Scanner
             string Code = richTextBox1.Text;
             rynix_scanner.Scan(Code); // calls the scan function in Scanner.cs
             PrintTokens();
+            prsr = new Parser(rynix_scanner.Tokens);
+            print_parse_errors();
             rynix_scanner.Tokens.Clear();
+            prsr.errors.Clear();
+
+
+        }
+        void print_parse_errors()
+        {
+            for (int i = 0; i < prsr.errors.Count; i++)
+            {
+                ErrorsDataGridView.Rows.Add("parse error", prsr.errors.ElementAt(i));
+
+            }
         }
         void PrintTokens()
         {
@@ -34,7 +48,7 @@ namespace Rynix_Scanner
             if (errors_found)
             {
                 //if errors found should we not show other tokens?
-               // return;
+                // return;
             }
             for (int i = 0; i < rynix_scanner.Tokens.Count; i++)
             {
