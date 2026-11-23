@@ -23,8 +23,8 @@ namespace Rynix_Scanner
         public List<Error> errors = new List<Error>();
         Token cur_token;
         int cur_token_index = 0;
-        bool at_end = false;          // true once every token has been consumed
-        int last_error_pos = -1;      // used to suppress cascading errors on the same token
+        bool at_end = false;          
+        int last_error_pos = -1;      
 
         public Parser(List<Token> _Tokens)
         {
@@ -33,13 +33,7 @@ namespace Rynix_Scanner
             Program();
         }
 
-        // =====================================================================
-        //  The scanner emits tokens the grammar knows nothing about:
-        //     NewLine                         -> dropped
-        //     //  Text  NewLine               -> comment, dropped
-        //     /*  Text  */                    -> comment, dropped
-        //  (string / char literals are kept: they are parsed in Literal())
-        // =====================================================================
+
         private List<Token> RemoveNoise(List<Token> raw)
         {
             List<Token> result = new List<Token>();
@@ -72,9 +66,7 @@ namespace Rynix_Scanner
             return result;
         }
 
-        // =====================================================================
-        //  Token helpers
-        // =====================================================================
+
         private bool IsEOF()
         {
             return at_end;
@@ -91,14 +83,13 @@ namespace Rynix_Scanner
             return Is(Token_Class.Identifier);
         }
 
-        // "init" is not a reserved word in your scanner, so it arrives as an Identifier.
+   
         private bool IsInit()
         {
             return Is(Token_Class.Identifier) && cur_token.lexeme == "init";
         }
 
-        // "!" is not recognised by your scanner (it comes out as an Invalid token with lexeme "!"),
-        // so it is detected by lexeme. Works unchanged if you later add a Not token class.
+
         private bool IsNot()
         {
             if (at_end) return false;
@@ -117,34 +108,30 @@ namespace Rynix_Scanner
                    Is(Token_Class.Bool) || Is(Token_Class.Char) || Is(Token_Class.Void);
         }
 
-        // text of the current token for error messages
+    
         private string CurLexeme()
         {
             if (at_end) return "end of input";
             return cur_token.lexeme;
         }
 
-        // =====================================================================
-        //  Core helpers
-        // =====================================================================
         private void set_current_token_to_next_token()
         {
             if (cur_token_index < tokens.Count)
                 cur_token = tokens[cur_token_index++];
             else
-                at_end = true;        // no more tokens
+                at_end = true;        
         }
 
         private void ReportError(string msg)
         {
-            // One error per token position, otherwise one mistake produces a flood of errors.
+
             int pos = at_end ? cur_token_index + 1 : cur_token_index;
-            if (pos == last_error_pos) return;
+           // if (pos == last_error_pos) return;
             last_error_pos = pos;
             errors.Add(new Error(msg));
         }
 
-        // On failure: report the error and do NOT consume (acts as if the token had been inserted).
         private void match(Token_Class expected)
         {
             if (Is(expected))
@@ -158,9 +145,7 @@ namespace Rynix_Scanner
             match(Token_Class.Identifier);
         }
 
-        // =====================================================================
-        //  FIRST-set helpers (decide ε-productions and choices)
-        // =====================================================================
+
         private bool FirstStatement()
         {
             return Is(Token_Class.Var) || Is(Token_Class.Val) || IsIdentifier() || Is(Token_Class.If) ||
@@ -191,9 +176,7 @@ namespace Rynix_Scanner
                    Is(Token_Class.GreaterEqual) || Is(Token_Class.Less) || Is(Token_Class.Greater);
         }
 
-        // =====================================================================
-        //  Program Structure
-        // =====================================================================
+
         public void Program()
         {
             if (IsEOF())
@@ -202,7 +185,6 @@ namespace Rynix_Scanner
                 return;
             }
 
-            // Panic-mode recovery at the top level: skip tokens that can't start anything.
             while (!IsEOF())
             {
                 if (FirstTopLevelItem())
@@ -228,7 +210,7 @@ namespace Rynix_Scanner
                 TopLevelItem();
                 TopLevelList_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void TopLevelItem()
@@ -238,9 +220,6 @@ namespace Rynix_Scanner
             else Statement();
         }
 
-        // =====================================================================
-        //  Variable and Constant Declarations
-        // =====================================================================
         public void VarDecl()
         {
             match(Token_Class.Var);
@@ -272,7 +251,7 @@ namespace Rynix_Scanner
                 match(Token_Class.Assign);
                 Expression();
             }
-            // else ε
+            // else epsilon
         }
 
         public void ValDecl()
@@ -300,9 +279,7 @@ namespace Rynix_Scanner
                 ReportError("Expected ':' or '=' after constant name, found: " + CurLexeme());
         }
 
-        // =====================================================================
-        //  Data Types
-        // =====================================================================
+ 
         public void Type()
         {
             if (IsPrimitiveType())
@@ -323,9 +300,7 @@ namespace Rynix_Scanner
             match(Token_Class.Greater);
         }
 
-        // =====================================================================
-        //  Functions and Parameters
-        // =====================================================================
+
         public void FunctionDecl()
         {
             match(Token_Class.Fun);
@@ -342,7 +317,7 @@ namespace Rynix_Scanner
         {
             if (IsIdentifier())
                 ParamList();
-            // else ε
+            // else epsilon
         }
 
         public void ParamList()
@@ -359,7 +334,7 @@ namespace Rynix_Scanner
                 Param();
                 ParamList_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void Param()
@@ -369,9 +344,7 @@ namespace Rynix_Scanner
             Type();
         }
 
-        // =====================================================================
-        //  Classes and Constructors
-        // =====================================================================
+ 
         public void ClassDecl()
         {
             match(Token_Class.Class);
@@ -379,7 +352,6 @@ namespace Rynix_Scanner
             match(Token_Class.LeftBrace);
             ClassBodyOptional();
 
-            // Panic-mode recovery: skip junk inside the class body until "}" or the next member.
             while (!Is(Token_Class.RightBrace) && !IsEOF())
             {
                 ReportError("unexpected token '" + CurLexeme() + "' in class body");
@@ -395,7 +367,7 @@ namespace Rynix_Scanner
         {
             if (FirstClassMember())
                 ClassBody();
-            // else ε
+            // else epsilon
         }
 
         public void ClassBody()
@@ -411,7 +383,7 @@ namespace Rynix_Scanner
                 ClassMember();
                 ClassBody_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void ClassMember()
@@ -425,22 +397,19 @@ namespace Rynix_Scanner
 
         public void ConstructorDecl()
         {
-            match_identifier();                 // the "init" keyword
+            match_identifier();         
             match(Token_Class.LeftParen);
             ParamsListOptional();
             match(Token_Class.RightParen);
             Block();
         }
 
-        // =====================================================================
-        //  Blocks and Statements
-        // =====================================================================
+
         public void Block()
         {
             match(Token_Class.LeftBrace);
             StatementListOptional();
 
-            // Panic-mode recovery: skip junk inside the block until "}" or the next statement.
             while (!Is(Token_Class.RightBrace) && !IsEOF())
             {
                 ReportError("unexpected token ' " + CurLexeme() + " ' in block");
@@ -456,7 +425,7 @@ namespace Rynix_Scanner
         {
             if (FirstStatement())
                 StatementList();
-            // else ε
+            // else epsilon
         }
 
         public void StatementList()
@@ -472,14 +441,14 @@ namespace Rynix_Scanner
                 Statement();
                 StatementList_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void Statement()
         {
             if (Is(Token_Class.Var)) VarDecl();
             else if (Is(Token_Class.Val)) ValDecl();
-            else if (IsIdentifier()) AssignmentOrCall();   // Assignment | FunctionCall share the LHS prefix
+            else if (IsIdentifier()) AssignmentOrCall(); 
             else if (Is(Token_Class.If)) IfStatement();
             else if (Is(Token_Class.For)) Forloop();
             else if (Is(Token_Class.While)) Whileloop();
@@ -489,9 +458,7 @@ namespace Rynix_Scanner
             else ReportError("Expected a statement, found: " + CurLexeme());
         }
 
-        // Assignment   -> LHS "=" Expression      (not defined in your grammar, assumed this form)
-        // FunctionCall -> LHS "(" ArgListOpt ")"
-        // Both start with LHS, so parse LHS once and decide on the next token.
+   
         private void AssignmentOrCall()
         {
             LHS();
@@ -510,9 +477,7 @@ namespace Rynix_Scanner
                 ReportError("Expected '=' or '(' after identifier, found: " + CurLexeme());
         }
 
-        // =====================================================================
-        //  Control Flow and Statements
-        // =====================================================================
+
         public void LHS()
         {
             match_identifier();
@@ -534,7 +499,7 @@ namespace Rynix_Scanner
                 match_identifier();
                 LHS_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void IfStatement()
@@ -552,7 +517,7 @@ namespace Rynix_Scanner
                 match(Token_Class.Else);
                 Block();
             }
-            // else ε
+            // else epsilon
         }
 
         public void Forloop()
@@ -593,7 +558,7 @@ namespace Rynix_Scanner
         {
             if (FirstExpression())
                 Expression();
-            // else ε
+            // else epsilon
         }
 
         public void ControlFlowStatement()
@@ -611,7 +576,6 @@ namespace Rynix_Scanner
             match(Token_Class.RightParen);
         }
 
-        // Not called directly (see AssignmentOrCall), kept to mirror the grammar.
         public void FunctionCall()
         {
             LHS();
@@ -620,9 +584,6 @@ namespace Rynix_Scanner
             match(Token_Class.RightParen);
         }
 
-        // =====================================================================
-        //  Expressions and Precedence
-        // =====================================================================
         public void Expression()
         {
             AddExpr();
@@ -637,7 +598,7 @@ namespace Rynix_Scanner
                 AddExpr();
                 Expression_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void RelOp()
@@ -662,7 +623,7 @@ namespace Rynix_Scanner
                 MultExpr();
                 AddExpr_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void AddOp()
@@ -687,7 +648,7 @@ namespace Rynix_Scanner
                 UnaryExpr();
                 MultExpr_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void MulOp()
@@ -737,7 +698,7 @@ namespace Rynix_Scanner
                 match_identifier();
                 PostfixExpr_();
             }
-            // else ε
+            // else epsilon
         }
 
         public void PrimaryExpr()
@@ -756,11 +717,7 @@ namespace Rynix_Scanner
             else ReportError("Expected an expression, found: " + CurLexeme());
         }
 
-        // =====================================================================
-        //  Literals and Arguments
-        // =====================================================================
-        // Numbers / true / false / null are one token.
-        // Strings and chars are three tokens:  "  Text  "   and   '  Text  '
+
         public void Literal()
         {
             if (Is(Token_Class.Constant) || Is(Token_Class.True) ||
@@ -811,7 +768,7 @@ namespace Rynix_Scanner
         {
             if (FirstExpression())
                 ArgList();
-            // else ε
+            // else epsilon
         }
 
         public void ArgList()
@@ -828,7 +785,7 @@ namespace Rynix_Scanner
                 Expression();
                 ArgList_();
             }
-            // else ε
+            // else epsilon
         }
     }
 }
