@@ -1,3 +1,4 @@
+using System.Diagnostics.Eventing.Reader;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Rynix_Scanner
@@ -53,7 +54,17 @@ namespace Rynix_Scanner
             }
             for (int i = 0; i < rynix_scanner.Tokens.Count; i++)
             {
-                if (rynix_scanner.Tokens.ElementAt(i).token_type != Token_Class.Invalid)
+                if(i+2< rynix_scanner.Tokens.Count && rynix_scanner.Tokens.ElementAt(i).token_type == Token_Class.DoubleQuote && rynix_scanner.Tokens.ElementAt(i+1).token_type == Token_Class.Text && rynix_scanner.Tokens.ElementAt(i+2).token_type == Token_Class.DoubleQuote)
+                {
+                    LexemeAndTokenDataGridView.Rows.Add("\""+rynix_scanner.Tokens.ElementAt(i+1).lexeme+"\"", "Double quoted content");
+                    i+=2;
+                }
+                else if (i + 2 < rynix_scanner.Tokens.Count && rynix_scanner.Tokens.ElementAt(i).token_type == Token_Class.SingleQuote && rynix_scanner.Tokens.ElementAt(i + 1).token_type == Token_Class.Text && rynix_scanner.Tokens.ElementAt(i + 2).token_type == Token_Class.SingleQuote)
+                {
+                    LexemeAndTokenDataGridView.Rows.Add("\'" + rynix_scanner.Tokens.ElementAt(i+1).lexeme + "\'", "Single quoted content");
+                    i += 2;
+                }
+                else if (rynix_scanner.Tokens.ElementAt(i).token_type != Token_Class.Invalid)
                     LexemeAndTokenDataGridView.Rows.Add(rynix_scanner.Tokens.ElementAt(i).lexeme, rynix_scanner.Tokens.ElementAt(i).token_type);
             }
         }

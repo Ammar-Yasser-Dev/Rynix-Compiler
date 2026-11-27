@@ -110,6 +110,7 @@ namespace Rynix_Scanner
 
             string comment_content = @"//(.+)(\n|$)";
 
+        
 
             string string_content = @"""[^""\n]*""";
             string char_content = @"'[^'\n]*'";

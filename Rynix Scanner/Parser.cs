@@ -34,7 +34,7 @@ namespace Rynix_Scanner
         public List<Error> errors = new List<Error>();
         Token cur_token;
         int cur_token_index = 0;
-        bool at_end = false;          
+        bool at_end = false;
         int last_error_pos = -1;
 
         public Node root;
@@ -117,7 +117,7 @@ namespace Rynix_Scanner
             return Is(Token_Class.Int) || Is(Token_Class.Float) || Is(Token_Class.String) ||
                    Is(Token_Class.Bool) || Is(Token_Class.Char) || Is(Token_Class.Void);
         }
-    
+
         private string CurLexeme()
         {
             if (at_end) return "end of input";
@@ -129,14 +129,14 @@ namespace Rynix_Scanner
             if (cur_token_index < tokens.Count)
                 cur_token = tokens[cur_token_index++];
             else
-                at_end = true;        
+                at_end = true;
         }
 
         private void ReportError(string msg)
         {
 
             int pos = at_end ? cur_token_index + 1 : cur_token_index;
-           // if (pos == last_error_pos) return;
+            if (pos == last_error_pos) return;
             last_error_pos = pos;
             errors.Add(new Error(msg));
         }
@@ -192,7 +192,7 @@ namespace Rynix_Scanner
         #endregion
 
         #region recurse functions
-        
+
         public Node Program()
         {
             if (IsEOF())
@@ -206,7 +206,7 @@ namespace Rynix_Scanner
                 {
                     root = new Node("Program");
                     root.Children.Add(TopLevelList());
-                    
+
                 }
                 else
                 {
@@ -316,7 +316,7 @@ namespace Rynix_Scanner
                 ReportError("Expected ':' or '=' after constant name, found: " + CurLexeme());
             return node;
         }
- 
+
         public Node Type()
         {
             Node node = new Node("Type");
@@ -468,7 +468,7 @@ namespace Rynix_Scanner
         public Node ConstructorDecl()
         {
             Node node = new Node("ConstructorDecl");
-            node.Children.Add(match_identifier());         
+            node.Children.Add(match_identifier());
             node.Children.Add(match(Token_Class.LeftParen));
             node.Children.Add(ParamsListOptional());
             node.Children.Add(match(Token_Class.RightParen));
@@ -532,7 +532,7 @@ namespace Rynix_Scanner
             Node node = new Node("Statement");
             if (Is(Token_Class.Var)) node.Children.Add(VarDecl());
             else if (Is(Token_Class.Val)) node.Children.Add(ValDecl());
-            else if (IsIdentifier()) node.Children.Add(AssignmentOrCall()); 
+            else if (IsIdentifier()) node.Children.Add(AssignmentOrCall());
             else if (Is(Token_Class.If)) node.Children.Add(IfStatement());
             else if (Is(Token_Class.For)) node.Children.Add(Forloop());
             else if (Is(Token_Class.While)) node.Children.Add(Whileloop());
@@ -889,14 +889,39 @@ namespace Rynix_Scanner
             else if (Is(Token_Class.DoubleQuote))
             {
                 node.Children.Add(match(Token_Class.DoubleQuote));
-                node.Children.Add(match(Token_Class.Text));
+                if (!Is(Token_Class.Text))
+                {
+                    ReportError("Expected \" ");
+                    set_current_token_to_next_token();
+                }
+                else
+                {
+
+                Node ret = match(Token_Class.Text);
+                node.Children.Add(ret);
                 node.Children.Add(match(Token_Class.DoubleQuote));
+                }
             }
             else if (Is(Token_Class.SingleQuote))
             {
                 node.Children.Add(match(Token_Class.SingleQuote));
-                node.Children.Add(match(Token_Class.Text));
+                if (Is(Token_Class.Text) && cur_token.lexeme.Length > 1 && !(cur_token.lexeme.Length == 2 && cur_token.lexeme[0] == '\\'))
+                {
+                    ReportError("Expected a single character between single quotes ");
+                }
+                if (!Is(Token_Class.Text))
+                {
+                    ReportError("Expected \' ");
+                    set_current_token_to_next_token();
+                }
+                else
+                {
+
+                Node ret = match(Token_Class.Text);
+           
+                node.Children.Add(ret);
                 node.Children.Add(match(Token_Class.SingleQuote));
+                }
             }
             else
                 ReportError("Expected a literal, found: " + CurLexeme());
